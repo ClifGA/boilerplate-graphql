@@ -12,6 +12,7 @@ const userData = {
 User.create(userData)
   .then(user => {
     console.log('User seeded successfully:', user.get());
+    console.log('Shutting down...');
   })
   .catch(error => {
     console.error('Error seeding user:', error);
