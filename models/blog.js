@@ -1,18 +1,18 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../sequelize');
-const User = require('./user');
+const { DataTypes } = require("sequelize");
+const sequelize = require("../sequelize");
 
-const Blog = sequelize.define('Blog', {
+const Blog = sequelize.define("Blog", {
   title: {
     type: DataTypes.STRING,
     allowNull: false,
   },
   content: {
-    type: DataTypes.TEXT,
+    type: DataTypes.STRING,
     allowNull: false,
+  },
+  ownerId: {
+    type: DataTypes.INTEGER,
   },
 });
 
-// Define the association
-Blog.belongsTo(User);
-User.hasMany(Blog);
+module.exports = Blog;

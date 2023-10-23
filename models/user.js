@@ -2,6 +2,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../sequelize");
 const bcrypt = require("bcrypt");
+const Blog = require("./blog");
 
 const User = sequelize.define("User", {
   username: {
@@ -27,5 +28,9 @@ User.beforeCreate(async (user, options) => {
   const hashedPassword = await bcrypt.hash(user.password, 10);
   user.password = hashedPassword;
 });
+
+User.hasMany(Blog, { as: "blogs", foreignKey: "ownerId" });
+Blog.belongsTo(User, { as: "owner", foreignKey: "ownerId" });
+
 
 module.exports = User;

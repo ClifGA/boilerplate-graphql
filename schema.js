@@ -1,99 +1,54 @@
-// schema.js
-const {
-  GraphQLObjectType,
-  GraphQLString,
-  GraphQLInt,
-  GraphQLList,
-  GraphQLNonNull,
-  GraphQLBoolean,
-  GraphQLSchema,
-} = require("graphql");
+const { buildSchema } = require("graphql");
 const User = require("./models/user");
+const Blog = require("./models/blog");
 
-const UserTypeWithoutPassword = new GraphQLObjectType({
-  name: "UserWithoutPassword",
-  fields: () => ({
-    id: { type: GraphQLInt },
-    username: { type: GraphQLString },
-    email: { type: GraphQLString },
-    blogs: {
-      type: new GraphQLList(BlogType),
-      resolve: async (parent, args) => {
-        return parent.getBlogs();
-      },
-    },
-  }),
-});
+const schema = buildSchema(`
+  type Blog {
+    id: Int
+    title: String
+    content: String
+    ownerId: Int
+    owner: User
+  }
 
-const BlogType = new GraphQLObjectType({
-  name: "Blog",
-  fields: () => ({
-    id: { type: GraphQLInt },
-    title: { type: GraphQLString },
-    content: { type: GraphQLString },
-    userId: { type: GraphQLInt },
-  }),
-});
+  type User {
+    id: Int
+    username: String
+    email: String
+    blogs: [Blog]
+  }
 
-const RootQuery = new GraphQLObjectType({
-  name: "RootQueryType",
-  fields: {
-    users: {
-      type: new GraphQLList(UserTypeWithoutPassword), // Use UserTypeWithoutPassword
-      resolve: async () => {
-        try {
-          const users = await User.findAll();
-          return users;
-        } catch (error) {
-          console.error("Error fetching users:", error);
-          return [];
-        }
-      },
-    },
+  type Mutation {
+    addUser(username: String!, email: String!): User
+    deleteUser(id: Int!): Boolean
+  }
+
+  type Query {
+    users: [User]
+    blogs: [Blog]
+  }
+`);
+const root = {
+  users: async () => {
+    try {
+      const users = await User.findAll({
+        include: [{ model: Blog, as: "blogs" }], // Specify the alias "blogs"
+      });
+
+      return users;
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      return [];
+    }
   },
-});
-
-const Mutation = new GraphQLObjectType({
-  name: "Mutation",
-  fields: {
-    addUser: {
-      type: UserTypeWithoutPassword, // Use UserTypeWithoutPassword
-      args: {
-        username: { type: new GraphQLNonNull(GraphQLString) },
-        password: { type: new GraphQLNonNull(GraphQLString) },
-        email: { type: new GraphQLNonNull(GraphQLString) },
-      },
-      resolve: async (parent, args) => {
-        const { username, password, email } = args;
-        try {
-          const user = await User.create({ username, password, email });
-          return user;
-        } catch (error) {
-          console.error("Error adding a user:", error);
-          throw new Error("User creation failed");
-        }
-      },
-    },
-    deleteUser: {
-      type: GraphQLBoolean,
-      args: {
-        id: { type: new GraphQLNonNull(GraphQLInt) },
-      },
-      resolve: async (parent, args) => {
-        const { id } = args;
-        try {
-          const result = await User.destroy({ where: { id } });
-          return result === 1;
-        } catch (error) {
-          console.error("Error deleting a user:", error);
-          throw Error("User deletion failed");
-        }
-      },
-    },
+  blogs: async () => {
+    try {
+      const blogs = await Blog.findAll();
+      return blogs;
+    } catch (error) {
+      console.error("Error fetching blogs:", error);
+      return [];
+    }
   },
-});
-
-module.exports = new GraphQLSchema({
-  query: RootQuery,
-  mutation: Mutation,
-});
+};
+module.exports = { schema, root };
